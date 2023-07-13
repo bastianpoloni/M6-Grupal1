@@ -1,28 +1,32 @@
 //https://mindicador.cl/api/{tipo_indicador}/{dd-mm-yyyy}
 
-let moneda = "dolar";
-let f = new Date ();
-let fecha = f.getDate() + "-" + (f.getMonth() +1) + "-" + f.getFullYear();
-const url = "https://mindicador.cl/api";
-const https = require ('https');
-//const consulta 
+let moneda = process.argv[2];
+let pesos = process.argv[3];
+let f = new Date();
+let fecha = f.getDate() + "-" + (f.getMonth() + 1) + "-" + f.getFullYear();
+const archivo = require('fs');
+const path = './files/texto.txt';
 
 
-async function getResponse(){
-    try{
-        let res = await fetch(`${https}://mindicador.cl/api/${moneda}/${fecha}`);        
-        let data = await res.json();     
-        //console.log(data.serie[0].valor);
-        //let valor = parseFloat(data.serie[0].valor);
-        return data;
-    }catch(error){
-        console.log(error);
-    }
-    //console.log(object);
-}
-getResponse();
-// //console.log(fecha);
+const https = require('https');
+https.get(`https://mindicador.cl/api/${moneda}/${fecha}`, function (res) {
+    res.setEncoding('utf-8');
+    let data = '';
+
+    res.on('data', function (chunk) {
+        data += chunk;
+    });
+    res.on('end', function () {
+        let dailyIndicators = JSON.parse(data); // JSON to JavaScript object
+        const conversion = pesos / dailyIndicators.serie[0].valor;
+        archivo.appendFileSync(path, `\nA la fecha: ${fecha}\nFue realizada cotización con los siguientes datos:\nCantidad de pesos a convertir: ${pesos} pesos\nConvertido a "${moneda}" da un total de: ${conversion.toFixed(3)}\n`);
+
+        console.log(archivo.readFileSync(path).toString());
 
 
-let respuesta = getResponse();
-respuesta.serie[0].valor;
+    });
+
+}).on('error', function (err) {
+    console.log('Error al consumir la API!');
+});
+
